@@ -83,5 +83,77 @@ La précision est mesurée avant et après optimisation, et un graphique compara
 
 6-Visualisation des résultats :
 Un graphique est créé pour visualiser l'impact de l'optimisation sur la performance du modèle, et un autre graphique montre l'impact des différentes combinaisons d'hyperparamètres sur la précision du modèle.
+ 
+____________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+# Optimisation d'Hyperparamètres avec Hyperband pour Random Forest
+ 
+ 1-Chargement des données :
+Les données sont chargées depuis un fichier Excel (data_cleaned.xlsx).
+La colonne Survived est utilisée comme cible (y), et les autres colonnes comme variables explicatives (X).
+Les données sont divisées en deux ensembles : 80% pour l'entraînement et 20% pour le test.
+
+2-Modèle initial :
+Un modèle de forêt aléatoire est entraîné avec ses paramètres par défaut.
+La précision personnalisée (moyenne du rappel des classes positives et négatives) est calculée pour évaluer la performance initiale.
+
+3-Optimisation avec Hyperband :
+Hyperband génère des configurations d'hyperparamètres aléatoires (exemple : nombre d'arbres, profondeur maximale des arbres, etc.).
+Chaque configuration est testée par étapes : les configurations les moins performantes sont progressivement éliminées, tandis que les meilleures continuent avec plus de ressources (nombre d'itérations).
+
+4-Modèle optimisé :
+Les meilleurs hyperparamètres trouvés par Hyperband sont utilisés pour entraîner un modèle optimisé.
+La performance du modèle optimisé est comparée à celle du modèle initial.
+
+5-Visualisation :
+Un graphique compare les précisions avant et après optimisation.
+
+___________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+# Explication du Code et de l'Optimisation des Hyperparamètres avec irace
+
+# Qu'est-ce que irace ?
+irace est un outil d'optimisation des hyperparamètres qui permet de trouver les meilleurs paramètres pour un modèle de machine learning en exécutant plusieurs essais avec différents ensembles de paramètres. Cet outil utilise une approche appelée racing, qui consiste à tester des configurations d'hyperparamètres et à éliminer progressivement celles qui ne sont pas performantes.
+L'outil fonctionne de manière itérative et génère de nouvelles configurations d'hyperparamètres en se basant sur les résultats des essais précédents, afin de trouver la meilleure combinaison possible.
+
+1. Chargement des données
+Le code commence par charger un fichier Excel contenant les données prétraitées pour l'entraînement du modèle. Ici, les 500 premières lignes de données sont utilisées pour l'entraînement et le test.
+2. Séparation des données
+Les données sont divisées en features (X) et labels (y). Ensuite, elles sont séparées en deux ensembles : un ensemble d'entraînement (80% des données) et un ensemble de test (20%).
+
+3. Évaluation des hyperparamètres
+la fonction évalue les performances d’un modèle RandomForest avec des hyperparamètres passés via les arguments de ligne de commande. Elle entraîne le modèle avec ces hyperparamètres, calcule la précision, et affiche cette précision avec le temps d'exécution.
+
+4. Fichier target-runner.bat
+
+Ce script batch exécute le fichier Python random_forest.py et passe les arguments nécessaires (les hyperparamètres ntree, mtry, etc.) à ce fichier pour l'évaluation des performances.
+
+5-Le fichier parameteres : 
+Dans ce bloc, les plages de valeurs des hyperparamètres sont spécifiées pour l'outil irace :
+
+ntree : le nombre d'arbres (entre 50 et 500).
+mtry : le nombre de variables à tester pour chaque split (entre 1 et 10).
+nodesize : la taille minimale des échantillons nécessaires pour diviser un nœud (entre 1 et 50).
+sampe_size : le pourcentage de l'échantillon de données à utiliser pour l'entraînement (entre 50% et 100%).
+
+6-Fichier instances : 
+
+irace s'attend à ce que vous lui fournissiez un fichier contenant une liste d'instances de problème. Chaque instance représente un ensemble d'exemples d'apprentissage sur lequel l'algorithme doit être évalué.
+
+# processus d'optimisation avec irace dans R : 
+1-Charger la bibliothèque irace :
+library("irace")
+
+2-Lire le fichier de scénario :
+scenario <- readScenario("scenario.txt")
+
+3-Vérifier la configuration du scénario :
+checkIraceScenario(scenario)
+
+4-Lancer l'optimisation irace : 
+irace_main(scenario = scenario)
+
+# attention !! :
+Il est important de placer tous les fichiers de configuration dans un seul dossier et de définir ce dossier comme répertoire de travail dans R en utilisant la fonction "setwd()" . Cela permettra à R de trouver tous les fichiers nécessaires au bon fonctionnement de l'optimisation.
 
 
