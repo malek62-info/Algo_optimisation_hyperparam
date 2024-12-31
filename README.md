@@ -83,5 +83,28 @@ La précision est mesurée avant et après optimisation, et un graphique compara
 
 6-Visualisation des résultats :
 Un graphique est créé pour visualiser l'impact de l'optimisation sur la performance du modèle, et un autre graphique montre l'impact des différentes combinaisons d'hyperparamètres sur la précision du modèle.
+ 
+____________________________________________________________________________________________________________________________________________________________________________________________________________________
 
+# Optimisation d'Hyperparamètres avec Hyperband pour Random Forest
+ 
+ 1-Chargement des données :
+Les données sont chargées depuis un fichier Excel (data_cleaned.xlsx).
+La colonne Survived est utilisée comme cible (y), et les autres colonnes comme variables explicatives (X).
+Les données sont divisées en deux ensembles : 80% pour l'entraînement et 20% pour le test.
+
+2-Modèle initial :
+Un modèle de forêt aléatoire est entraîné avec ses paramètres par défaut.
+La précision personnalisée (moyenne du rappel des classes positives et négatives) est calculée pour évaluer la performance initiale.
+
+3-Optimisation avec Hyperband :
+Hyperband génère des configurations d'hyperparamètres aléatoires (exemple : nombre d'arbres, profondeur maximale des arbres, etc.).
+Chaque configuration est testée par étapes : les configurations les moins performantes sont progressivement éliminées, tandis que les meilleures continuent avec plus de ressources (nombre d'itérations).
+
+4-Modèle optimisé :
+Les meilleurs hyperparamètres trouvés par Hyperband sont utilisés pour entraîner un modèle optimisé.
+La performance du modèle optimisé est comparée à celle du modèle initial.
+
+5-Visualisation :
+Un graphique compare les précisions avant et après optimisation.
 
