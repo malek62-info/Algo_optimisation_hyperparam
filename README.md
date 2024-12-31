@@ -31,3 +31,37 @@ plusieurs graphiques sont affichés :
 Une comparaison de la précision du modèle avant et après l'optimisation.
 Le nombre total de combinaisons d'hyperparamètres testées par Grid Search.
 Les scores moyens obtenus pour chaque combinaison d'hyperparamètres testée.
+
+_____________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+# Explication de l'algorithme d'optimisation RandomizedSearchCV :
+
+1-Chargement des données :
+
+Les données sont importées depuis un fichier Excel.
+Les variables explicatives (X) et la cible (y) sont définies.
+Les données sont ensuite divisées en ensembles d'entraînement et de test.
+
+2-Entraînement initial avec des hyperparamètres aléatoires :
+Un premier modèle de Random Forest est entraîné avec des hyperparamètres prédéfinis de manière arbitraire.
+Ce modèle sert de référence pour évaluer les améliorations obtenues après optimisation.
+La précision est calculée en utilisant une fonction personnalisée qui évalue la moyenne des rappels des classes.
+
+3-Optimisation avec RandomizedSearchCV :
+RandomizedSearch explore aléatoirement différentes combinaisons d'hyperparamètres, contrairement à Grid Search qui teste toutes les combinaisons possibles.
+Parmi les hyperparamètres optimisés dans cet exemple :
+Le nombre d'arbres (n_estimators)
+La profondeur maximale de l'arbre (max_depth)
+Le nombre minimum d'échantillons requis pour diviser un nœud (min_samples_split)
+Et d'autres, comme max_features, criterion, et bootstrap.
+L'algorithme effectue une validation croisée pour évaluer chaque combinaison d'hyperparamètres et détermine les meilleurs.
+
+4-Entraînement avec les meilleurs hyperparamètres :
+Une nouvelle Random Forest est entraînée avec les hyperparamètres optimaux trouvés par RandomizedSearch.
+Les performances de ce modèle optimisé sont mesurées sur l'ensemble de test.
+
+5-Visualisation des résultats :
+Un graphique compare la précision du modèle avant et après optimisation.
+Les meilleurs hyperparamètres trouvés sont affichés, permettant de comprendre comment le modèle a été amélioré.
+
+
