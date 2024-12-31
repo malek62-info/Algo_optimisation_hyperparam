@@ -1,0 +1,7 @@
+targetRunner = "C:/tuning/target-runner.bat"
+trainInstancesDir = ""
+trainInstancesFile = "instances.txt"
+
+maxExperiments = 300
+seed = 1234567
+nbIterations = 5
