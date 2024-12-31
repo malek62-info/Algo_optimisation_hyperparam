@@ -63,5 +63,25 @@ Les performances de ce modèle optimisé sont mesurées sur l'ensemble de test.
 5-Visualisation des résultats :
 Un graphique compare la précision du modèle avant et après optimisation.
 Les meilleurs hyperparamètres trouvés sont affichés, permettant de comprendre comment le modèle a été amélioré.
+___________________________________________________________________________________________________________________________________________________________________________________________________________________
+# optimisation bayésienne
+
+1-Chargement des données :
+Le fichier de données data_cleaned.xlsx est chargé dans un DataFrame avec pandas. Les colonnes sont séparées en features (X) et target (y).
+
+2-Entraînement initial du modèle :
+Un modèle RandomForestClassifier est initialisé avec des hyperparamètres fixés (comme le nombre d'arbres, la profondeur des arbres, etc.) et entraîné sur un ensemble d'entraînement. Ensuite, on calcule et affiche l'importance des variables et la précision du modèle.
+
+3-Optimisation des hyperparamètres avec BayesSearchCV :
+Les hyperparamètres du modèle sont optimisés à l'aide d'une recherche bayésienne (BayesSearchCV). Cette méthode explore différents ensembles d'hyperparamètres pour trouver la meilleure combinaison qui maximise la performance du modèle.
+
+4-Entraînement du modèle optimisé :
+Après l'optimisation, le modèle est réentraîné avec les meilleurs hyperparamètres trouvés.
+
+5-Comparaison de la performance avant et après optimisation :
+La précision est mesurée avant et après optimisation, et un graphique comparant ces deux performances est généré. Les importances des variables les plus significatives sont également affichées.
+
+6-Visualisation des résultats :
+Un graphique est créé pour visualiser l'impact de l'optimisation sur la performance du modèle, et un autre graphique montre l'impact des différentes combinaisons d'hyperparamètres sur la précision du modèle.
 
 
