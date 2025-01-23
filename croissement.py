@@ -13,10 +13,12 @@ donnees = pd.read_excel(fichier_donnees)
 X = donnees.iloc[:, :-1]
 y = donnees.iloc[:, -1]
 
-# Paramètres des plages d'hyperparamètres
+# Plages des hyperparamètres
 n_estimators_min, n_estimators_max = 10, 500
 max_depth_min, max_depth_max = 3, 200
-learning_rate_min, learning_rate_max = 0.01, 0.8
+min_samples_split_min, min_samples_split_max = 2, 50
+min_samples_leaf_min, min_samples_leaf_max = 1, 50
+max_features_categories = ["sqrt", "log2", None]
 criterion_categories = ["gini", "entropy"]
 
 # Fonctions d'encodage et de décodage
@@ -40,51 +42,51 @@ def custom_precision(y_true, y_pred):
     recall_class_0 = recall_score(y_true, y_pred, pos_label=0)
     return (recall_class_1 + recall_class_0) / 2
 
+# Décodage des individus
 def decode_individual(individual):
     n_estimators_bits = 8
     max_depth_bits = 4
-    learning_rate_bits = 5
+    min_samples_split_bits = 5
+    min_samples_leaf_bits = 5
+    max_features_bits = 2
     criterion_bits = 2
 
     n_estimators_bin = individual[:n_estimators_bits]
     max_depth_bin = individual[n_estimators_bits:n_estimators_bits + max_depth_bits]
-    learning_rate_bin = individual[n_estimators_bits + max_depth_bits:
-                                   n_estimators_bits + max_depth_bits + learning_rate_bits]
+    min_samples_split_bin = individual[n_estimators_bits + max_depth_bits:
+                                       n_estimators_bits + max_depth_bits + min_samples_split_bits]
+    min_samples_leaf_bin = individual[n_estimators_bits + max_depth_bits + min_samples_split_bits:
+                                       n_estimators_bits + max_depth_bits + min_samples_split_bits + min_samples_leaf_bits]
+    max_features_bin = individual[-(max_features_bits + criterion_bits):-criterion_bits]
     criterion_bin = individual[-criterion_bits:]
 
     n_estimators = bin_to_int(n_estimators_bin) + n_estimators_min
     max_depth = bin_to_int(max_depth_bin) + max_depth_min
-    learning_rate = decode_continuous(learning_rate_bin, learning_rate_min, learning_rate_max)
+    min_samples_split = bin_to_int(min_samples_split_bin) + min_samples_split_min
+    min_samples_leaf = bin_to_int(min_samples_leaf_bin) + min_samples_leaf_min
+    max_features = decode_categorical(max_features_bin, max_features_categories)
     criterion = decode_categorical(criterion_bin, criterion_categories)
 
     return {
         "n_estimators": n_estimators,
         "max_depth": max_depth,
-        "learning_rate": learning_rate,
+        "min_samples_split": min_samples_split,
+        "min_samples_leaf": min_samples_leaf,
+        "max_features": max_features,
         "criterion": criterion
     }
 
+# Fonction d'évaluation (fitness)
 def fitness(individual, X_train, X_test, y_train, y_test):
-    n_estimators_bits = 8
-    max_depth_bits = 4
-    learning_rate_bits = 5
-    criterion_bits = 2
-
-    n_estimators_bin = individual[:n_estimators_bits]
-    max_depth_bin = individual[n_estimators_bits:n_estimators_bits + max_depth_bits]
-    learning_rate_bin = individual[n_estimators_bits + max_depth_bits:
-                                   n_estimators_bits + max_depth_bits + learning_rate_bits]
-    criterion_bin = individual[-criterion_bits:]
-
-    n_estimators = bin_to_int(n_estimators_bin) + n_estimators_min
-    max_depth = bin_to_int(max_depth_bin) + max_depth_min
-    learning_rate = decode_continuous(learning_rate_bin, learning_rate_min, learning_rate_max)
-    criterion = decode_categorical(criterion_bin, criterion_categories)
+    params = decode_individual(individual)
 
     clf = RandomForestClassifier(
-        n_estimators=n_estimators,
-        max_depth=max_depth,
-        criterion=criterion,
+        n_estimators=params["n_estimators"],
+        max_depth=params["max_depth"],
+        min_samples_split=params["min_samples_split"],
+        min_samples_leaf=params["min_samples_leaf"],
+        max_features=params["max_features"],
+        criterion=params["criterion"],
         random_state=42
     )
     clf.fit(X_train, y_train)
@@ -93,13 +95,17 @@ def fitness(individual, X_train, X_test, y_train, y_test):
     score = custom_precision(y_test, y_pred)
     return score
 
+# Algorithme génétique
 def run_genetic_algorithm(population_size, num_generations, mutation_rate, X_train, X_test, y_train, y_test):
     n_estimators_bits = 8
     max_depth_bits = 4
-    learning_rate_bits = 5
+    min_samples_split_bits = 5
+    min_samples_leaf_bits = 5
+    max_features_bits = 2
     criterion_bits = 2
 
-    num_features = n_estimators_bits + max_depth_bits + learning_rate_bits + criterion_bits
+    num_features = (n_estimators_bits + max_depth_bits + min_samples_split_bits +
+                    min_samples_leaf_bits + max_features_bits + criterion_bits)
 
     population = np.random.randint(2, size=(population_size, num_features))
     scores_par_generation = []
