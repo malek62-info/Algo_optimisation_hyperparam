@@ -6,12 +6,11 @@ from sklearn.metrics import recall_score, make_scorer
 import matplotlib.pyplot as plt
 import time
 
-# Fonction de précision
+# Fonction de précision personnalisée
 def custom_precision(y_true, y_pred):
     recall_class_1 = recall_score(y_true, y_pred, pos_label=1)
     recall_class_0 = recall_score(y_true, y_pred, pos_label=0)
-    average_recall = (recall_class_1 + recall_class_0) / 2
-    return average_recall
+    return (recall_class_1 + recall_class_0) / 2
 
 # Charger les données
 file_path = 'C:/irace_random_forest/data_cleaned.xlsx'
@@ -35,12 +34,12 @@ y_pred_default = rf_default.predict(X_test)
 precision_initial = custom_precision(y_test, y_pred_default)
 print(f"Précision avec hyperparamètres par défaut : {precision_initial:.4f}")
 
-# Définir l'espace de recherche des hyperparamètres (identique à RandomizedSearchCV)
+# Définir l'espace de recherche des hyperparamètres
 param_grid = {
-    'n_estimators': np.linspace(10, 500, 50, dtype=int).tolist(),
-    'max_depth': np.linspace(3, 200, 50, dtype=int).tolist(),
-    'min_samples_split': np.linspace(2, 50, 10, dtype=int).tolist(),
-    'min_samples_leaf': np.linspace(1, 50, 10, dtype=int).tolist(),
+    'n_estimators': [10, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+    'max_depth': [3, 5, 10, 15, 20, 30, 50, 75, 100, 150, 200],
+    'min_samples_split': [2, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50],
+    'min_samples_leaf': [1, 2, 3, 4, 5, 7, 10, 15, 20, 25, 30, 40, 50],
     'max_features': ["sqrt", "log2", None],
     'criterion': ["gini", "entropy"]
 }
@@ -54,7 +53,7 @@ custom_scorer = make_scorer(custom_precision)
 grid_search = GridSearchCV(
     estimator=RandomForestClassifier(random_state=42),
     param_grid=param_grid,
-    cv=5,
+    cv=5,  # Réduit pour accélérer
     n_jobs=-1,
     verbose=2,
     scoring=custom_scorer
@@ -64,7 +63,7 @@ grid_search = GridSearchCV(
 total_time = 2 * 3600  # 2 heures en secondes
 start_time = time.time()
 
-# Exécuter GridSearchCV pendant 2 heures
+# Exécuter GridSearchCV avec une limite de temps
 try:
     grid_search.fit(X_train, y_train)
 except KeyboardInterrupt:
