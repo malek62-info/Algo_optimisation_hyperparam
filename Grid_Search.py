@@ -6,7 +6,7 @@ from sklearn.metrics import recall_score, make_scorer
 import matplotlib.pyplot as plt
 import time
 
-# Fonction de précision 
+# Fonction de précision
 def custom_precision(y_true, y_pred):
     recall_class_1 = recall_score(y_true, y_pred, pos_label=1)
     recall_class_0 = recall_score(y_true, y_pred, pos_label=0)
@@ -35,36 +35,22 @@ y_pred_default = rf_default.predict(X_test)
 precision_initial = custom_precision(y_test, y_pred_default)
 print(f"Précision avec hyperparamètres par défaut : {precision_initial:.4f}")
 
-# Hyperparamètres aléatoires pour l'expérimentation initiale
-random_hyperparams = {
-    'n_estimators': 120,    # Nombre d'arbres
-    'max_depth': 15,        # Profondeur maximale
-    'min_samples_split': 8, # Nombre minimum d'échantillons requis pour diviser un nœud
-    'min_samples_leaf': 3,  # Nombre minimum d'échantillons dans chaque feuille
-    'max_features': 'sqrt'  # Nombre maximum de caractéristiques à considérer pour chaque split
-}
-
-# Entraînement du modèle avec ces hyperparamètres
-rf_random = RandomForestClassifier(random_state=42, **random_hyperparams)
-rf_random.fit(X_train, y_train)
-y_pred_random = rf_random.predict(X_test)
-precision_random = custom_precision(y_test, y_pred_random)
-print(f"Précision après l'expérimentation aléatoire : {precision_random:.4f}")
-
-# Définir la grille des hyperparamètres
+# Définir l'espace de recherche des hyperparamètres (identique à RandomizedSearchCV)
 param_grid = {
-    'n_estimators': [50, 100, 200, 300],
-    'max_depth': [None, 10, 20, 30, 40],
-    'min_samples_split': [2, 5, 10, 15],
+    'n_estimators': np.linspace(10, 500, 50, dtype=int).tolist(),
+    'max_depth': np.linspace(3, 200, 50, dtype=int).tolist(),
+    'min_samples_split': np.linspace(2, 50, 10, dtype=int).tolist(),
+    'min_samples_leaf': np.linspace(1, 50, 10, dtype=int).tolist(),
+    'max_features': ["sqrt", "log2", None],
+    'criterion': ["gini", "entropy"]
 }
 
+# Nombre total de combinaisons
 total_combinations = np.prod([len(values) for values in param_grid.values()])
-print(f"Nombre total de combinaisons évaluées : {total_combinations}")
+print(f"Nombre total de combinaisons possibles : {total_combinations}")
 
-start_time = time.time()
+# Configuration de la recherche par grille
 custom_scorer = make_scorer(custom_precision)
-
-# Recherche par grille
 grid_search = GridSearchCV(
     estimator=RandomForestClassifier(random_state=42),
     param_grid=param_grid,
@@ -74,11 +60,21 @@ grid_search = GridSearchCV(
     scoring=custom_scorer
 )
 
-grid_search.fit(X_train, y_train)
-end_time = time.time()
-execution_time_minutes = (end_time - start_time) / 60
-print(f"Temps d'exécution de GridSearchCV : {execution_time_minutes:.2f} minutes")
+# Limite de temps d'exécution (2 heures)
+total_time = 2 * 3600  # 2 heures en secondes
+start_time = time.time()
 
+# Exécuter GridSearchCV pendant 2 heures
+try:
+    grid_search.fit(X_train, y_train)
+except KeyboardInterrupt:
+    print("Temps écoulé : 2 heures, arrêt de la recherche.")
+
+# Temps écoulé
+elapsed_time = time.time() - start_time
+print(f"Temps d'exécution : {elapsed_time / 60:.2f} minutes")
+
+# Meilleurs paramètres trouvés
 best_params = grid_search.best_params_
 print("Meilleurs paramètres après optimisation :", best_params)
 
@@ -90,20 +86,20 @@ precision_optimized = custom_precision(y_test, y_pred_optimized)
 print(f"Précision après optimisation (modèle optimisé) : {precision_optimized:.4f}")
 
 # Visualisation
-precisions = [precision_random, precision_optimized]
-labels = ['Exp. aléatoire', 'Après optimisation']
+precisions = [precision_initial, precision_optimized]
+labels = ['Par défaut', 'Après optimisation']
 
 plt.figure(figsize=(15, 5))
 
 # Barplot pour la précision
 plt.subplot(1, 3, 1)
-plt.bar(labels, precisions, color=['blue', 'orange', 'green'])
+plt.bar(labels, precisions, color=['blue', 'orange'])
 plt.ylabel('Précision')
 plt.title('Précision avant et après optimisation')
 
 # Visualisation du nombre de combinaisons
 plt.subplot(1, 3, 2)
-plt.bar(['Combinaisons évaluées'], [total_combinations], color='purple')
+plt.bar(['Combinaisons évaluées'], [len(grid_search.cv_results_['params'])], color='purple')
 plt.ylabel('Nombre de combinaisons')
 plt.title('Combinaisons évaluées par GridSearchCV')
 

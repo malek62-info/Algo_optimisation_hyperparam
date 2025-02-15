@@ -1,111 +1,77 @@
-# Importation des bibliothèques nécessaires
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
-from sklearn.metrics import recall_score
-import matplotlib.pyplot as plt
+from sklearn.metrics import recall_score, accuracy_score, make_scorer
+import time
 
-# Définir votre fonction de précision personnalisée
+# Fonction de précision
 def custom_precision(y_true, y_pred):
     recall_class_1 = recall_score(y_true, y_pred, pos_label=1)
     recall_class_0 = recall_score(y_true, y_pred, pos_label=0)
-    average_recall = (recall_class_1 + recall_class_0) / 2
-    return average_recall
+    return (recall_class_1 + recall_class_0) / 2
 
-# Charger les données depuis un fichier Excel
-df = pd.read_excel('C:/irace_random_forest/data_cleaned.xlsx')
+# Charger les données
+file_path = 'C:/irace_random_forest/data_cleaned.xlsx'
+df = pd.read_excel(file_path)
 
-# Vérifier les premières lignes pour comprendre la structure des données
-print(df.head())
+# Sélection des variables et de la cible
+X = df.drop(columns=['Survived'])
+y = df['Survived']
 
-# Sélectionner les variables (X) et la cible (y)
-# Remplacer 'Survived' par le nom réel de votre colonne cible
-X = df.drop(columns=['Survived'])  # Remplacer 'Survived' par votre colonne cible
-y = df['Survived']  # Remplacer 'Survived' par votre colonne cible
-
-# Diviser les données en ensembles d'entraînement et de test
+# Division des données
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Définir directement les valeurs aléatoires pour les hyperparamètres
-n_estimators_value = 6  # Exemple d'un nombre d'arbres
-max_depth_value = 2  # Profondeur maximale des arbres
-min_samples_split_value = 5  # Nombre minimum d'échantillons pour diviser un nœud
-min_samples_leaf_value = 3  # Nombre minimum d'échantillons dans une feuille
-max_features_value = 'sqrt'  # Nombre de caractéristiques à tester à chaque split
-
-
-# Initialisation du RandomForest avec ces paramètres définis
-rf_random = RandomForestClassifier(
-    n_estimators=n_estimators_value,
-    max_depth=max_depth_value,
-    min_samples_split=min_samples_split_value,
-    min_samples_leaf=min_samples_leaf_value,
-    max_features=max_features_value,
-    
-    random_state=42  # Pour garantir la reproductibilité
-)
-
-# Entraîner le modèle
-rf_random.fit(X_train, y_train)
-
-
-# Prédiction avec le modèle random
-y_pred_random = rf_random.predict(X_test)
-
-# Calculer la précision avec la fonction custom_precision
-precision_random = custom_precision(y_test, y_pred_random)
-print(f"Précision avant optimisation (modèle aléatoire) : {precision_random:.4f}")
-
-# Étape 2 : Optimisation des hyperparamètres avec RandomizedSearchCV
+# Définition de l'espace de recherche
 param_dist = {
-    'n_estimators': np.arange(50, 200, 10),  # Nombre d'arbres aléatoires
-    'max_depth': [None, 10, 20, 30, 40, 50],  # Profondeur des arbres
-    'min_samples_split': [2, 5, 10, 20, 30],  # Nombre minimum d'échantillons pour diviser un nœud
-    'min_samples_leaf': [1, 2, 4, 8, 10],  # Nombre minimum d'échantillons dans une feuille
-    'max_features': ['sqrt', 'log2', None, 0.2, 0.5, 0.8],  # Nombre de caractéristiques à tester à chaque split
-    'bootstrap': [True, False],  # Utilisation de l'échantillonnage avec ou sans remise
-    'criterion': ['gini', 'entropy'],  # Critère de division des nœuds (Gini ou Entropie)
-    'class_weight': ['balanced', 'balanced_subsample', None],  # Poids des classes
+    'n_estimators': np.linspace(10, 500, 50, dtype=int).tolist(),
+    'max_depth': np.linspace(3, 200, 50, dtype=int).tolist(),
+    'min_samples_split': np.linspace(2, 50, 10, dtype=int).tolist(),
+    'min_samples_leaf': np.linspace(1, 50, 10, dtype=int).tolist(),
+    'max_features': ["sqrt", "log2", None],
+    'criterion': ["gini", "entropy"]
 }
 
+# Configuration de la recherche
+custom_scorer = make_scorer(custom_precision)
+random_search = RandomizedSearchCV(
+    estimator=RandomForestClassifier(random_state=42),
+    param_distributions=param_dist,
+    n_iter=1000,  # Un grand nombre d'itérations
+    scoring=custom_scorer,
+    cv=5,
+    n_jobs=-1,
+    verbose=2,
+    random_state=42,
+    return_train_score=True
+)
 
-# Définir RandomizedSearchCV avec plus d'itérations et plus de plis
-random_search = RandomizedSearchCV(estimator=RandomForestClassifier(random_state=42),
-                                   param_distributions=param_dist,
-                                   n_iter=30,  # Augmenter le nombre d'itérations pour plus d'exploration
-                                   cv=10,  # Utiliser 10 plis pour la validation croisée pour une évaluation plus robuste
-                                   verbose=3,  
-                                   n_jobs=-1,  
-                                   random_state=42)
-
-# Entraîner le modèle avec la recherche aléatoire
+# Exécuter la recherche
+total_time = 2 * 3600  # 2 heures en secondes
+start_time = time.time()
 random_search.fit(X_train, y_train)
 
-# Afficher les meilleurs paramètres trouvés
-print("Meilleurs paramètres après RandomizedSearch : ", random_search.best_params_)
+# Afficher uniquement l'accuracy de chaque combinaison de paramètres testée
+cv_results = random_search.cv_results_
+for i in range(len(cv_results['params'])):
+    params = cv_results['params'][i]
+    mean_accuracy = cv_results['mean_test_score'][i]
+    print(f"Combinaison {i+1}: {params} -> Accuracy: {mean_accuracy:.4f}")
 
-# Étape 3 : Sélection de variables avec le modèle optimisé
-best_rf = random_search.best_estimator_
+# Vérifier le temps écoulé
+elapsed_time = time.time() - start_time
+if elapsed_time > total_time:
+    print("Temps écoulé : 2 heures, arrêt de la recherche.")
 
-# Refaire la sélection de variables avec les meilleurs hyperparamètres
-best_rf.fit(X_train, y_train)
-importances_best = best_rf.feature_importances_
-indices_best = np.argsort(importances_best)[::-1]
+# Meilleurs paramètres
+best_params = random_search.best_params_
+print("Meilleurs paramètres après optimisation :", best_params)
 
-
-# Prédiction avec le modèle optimisé
-y_pred_best = best_rf.predict(X_test)
-
-# Calculer la précision avec la fonction custom_precision
-precision_best = custom_precision(y_test, y_pred_best)
-print(f"Précision après optimisation (modèle optimisé) : {precision_best:.4f}")
-
-# Afficher la comparaison de la précision avant et après optimisation
-precisions = [precision_random, precision_best]
-labels = ['Avant optimisation', 'Après optimisation']
-
-plt.bar(labels, precisions, color=['blue', 'green'])
-plt.ylabel('Précision')
-plt.title('Précision avant et après optimisation')
-plt.show()
+# Entraîner le modèle final
+rf_optimized = RandomForestClassifier(random_state=42, **best_params)
+rf_optimized.fit(X_train, y_train)
+y_pred_optimized = rf_optimized.predict(X_test)
+precision_optimized = custom_precision(y_test, y_pred_optimized)
+accuracy_optimized = accuracy_score(y_test, y_pred_optimized)
+print(f"Précision après optimisation : {precision_optimized:.4f}")
+print(f"Accuracy après optimisation : {accuracy_optimized:.4f}")
