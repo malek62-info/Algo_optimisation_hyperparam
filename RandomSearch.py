@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.metrics import recall_score, accuracy_score, make_scorer
+from scipy.stats import randint, uniform
+import matplotlib.pyplot as plt
 import time
 
 # Fonction de précision personnalisée
@@ -12,7 +14,7 @@ def custom_precision(y_true, y_pred):
     return (recall_class_1 + recall_class_0) / 2
 
 # Charger les données
-file_path = 'C:/irace_random_forest/data_cleaned.xlsx'
+file_path = 'C:/tuning/data_cleaned.xlsx'
 df = pd.read_excel(file_path)
 
 # Sélection des variables et de la cible
@@ -22,58 +24,63 @@ y = df['Survived']
 # Division des données
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Définir l'espace de recherche des hyperparamètres
+# Définir l'espace de recherche des hyperparamètres avec des intervalles
 param_dist = {
-    'n_estimators': [10, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
-    'max_depth': [3, 5, 10, 15, 20, 30, 50, 75, 100, 150, 200],
-    'min_samples_split': [2, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50],
-    'min_samples_leaf': [1, 2, 3, 4, 5, 7, 10, 15, 20, 25, 30, 40, 50],
-    'max_features': ["sqrt", "log2", None],
-    'criterion': ["gini", "entropy"]
+    'n_estimators': randint(10, 201),  # Intervalles pour n_estimators entre 10 et 200
+    'max_depth': randint(3, 26),       # Intervalles pour max_depth entre 3 et 25
+    'min_samples_split': randint(2, 16),  # Intervalles pour min_samples_split entre 2 et 15
+    'min_samples_leaf': randint(1, 7),   # Intervalles pour min_samples_leaf entre 1 et 6
+    'max_features': ["sqrt", "log2"],   # Liste explicite pour max_features
+    'criterion': ["gini", "entropy"]     # Liste explicite pour criterion
 }
 
-# Configuration de la recherche
+# Configuration de la recherche aléatoire
 custom_scorer = make_scorer(custom_precision)
 random_search = RandomizedSearchCV(
     estimator=RandomForestClassifier(random_state=42),
     param_distributions=param_dist,
-    n_iter=100,  # Réduit pour respecter le temps d'exécution
+    n_iter=500,  # Nombre d'itérations pour RandomizedSearchCV
     scoring=custom_scorer,
-    cv=5,  # Réduit pour accélérer
-    n_jobs=-1,
-    verbose=2,
+    cv=5,  # Validation croisée à 5 plis
+    n_jobs=-1,  # Utiliser tous les cœurs disponibles
+    verbose=2,  # Afficher les détails de l'exécution
     random_state=42,
     return_train_score=True
 )
 
-# Exécuter la recherche avec un temps limite
-total_time = 2 * 3600  # 2 heures en secondes
+# Démarrer le chronomètre
 start_time = time.time()
+
+# Exécuter la recherche aléatoire
 random_search.fit(X_train, y_train)
 
-# Vérifier le temps écoulé
+# Calculer le temps écoulé
 elapsed_time = time.time() - start_time
-if elapsed_time > total_time:
-    print("Temps écoulé : 2 heures, arrêt de la recherche.")
+print(f"Temps d'exécution total : {elapsed_time / 60:.2f} minutes")
 
-# Afficher les résultats
-cv_results = random_search.cv_results_
-for i in range(len(cv_results['params'])):
-    params = cv_results['params'][i]
-    mean_score = cv_results['mean_test_score'][i]  # Utilisez la métrique personnalisée
-    print(f"Combinaison {i+1}: {params} -> Score: {mean_score:.4f}")
-
-# Meilleurs paramètres
+# Meilleurs paramètres trouvés
 best_params = random_search.best_params_
 print("Meilleurs paramètres après optimisation :", best_params)
 
-# Entraîner le modèle final avec les meilleurs paramètres
-rf_optimized = RandomForestClassifier(random_state=42, **best_params)
-rf_optimized.fit(X_train, y_train)
+# Entraîner le modèle optimisé avec les meilleurs paramètres
+best_model = random_search.best_estimator_
+y_pred_optimized = best_model.predict(X_test)
 
-# Prédiction et évaluation
-y_pred_optimized = rf_optimized.predict(X_test)
+# Calculer la précision personnalisée et l'accuracy sur l'ensemble de test
 precision_optimized = custom_precision(y_test, y_pred_optimized)
 accuracy_optimized = accuracy_score(y_test, y_pred_optimized)
-print(f"Précision après optimisation : {precision_optimized:.4f}")
-print(f"Accuracy après optimisation : {accuracy_optimized:.4f}")
+
+print(f"Précision personnalisée après optimisation : {precision_optimized:.4f}")
+
+# Graphique de l'évolution du score moyen basé sur custom_precision
+results_df = pd.DataFrame(random_search.cv_results_)
+mean_test_scores = results_df['mean_test_score']  # Scores moyens (basés sur custom_precision)
+param_combinations = range(1, len(mean_test_scores) + 1)  # Numéro de combinaison
+
+plt.figure(figsize=(8, 6))
+plt.plot(param_combinations, mean_test_scores, marker='o', linestyle='-', color='blue')
+plt.xlabel('Combinaison de paramètres')
+plt.ylabel('Score moyen (Précision Personnalisée)')
+plt.title('Évolution de la précision personnalisée pour chaque combinaison de paramètres')
+plt.grid(True)
+plt.show()
