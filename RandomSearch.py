@@ -1,46 +1,50 @@
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import recall_score, accuracy_score, make_scorer
-from scipy.stats import randint, uniform
+from scipy.stats import randint
 import matplotlib.pyplot as plt
 import time
 
-# Fonction de précision personnalisée
+# Définition de la métrique personnalisée
 def custom_precision(y_true, y_pred):
     recall_class_1 = recall_score(y_true, y_pred, pos_label=1)
     recall_class_0 = recall_score(y_true, y_pred, pos_label=0)
     return (recall_class_1 + recall_class_0) / 2
 
-# Charger les données
-file_path = 'C:/tuning/data_cleaned.xlsx'
-df = pd.read_excel(file_path)
+# Chemins des fichiers
+data_train_path = "C:/Users/malle/OneDrive/Bureau/Algo_optimisation_hyperparam/als_train_t3.xlsx"
+data_test_path = "C:/Users/malle/OneDrive/Bureau/Algo_optimisation_hyperparam/als_test_t3.xlsx"
+
+# Charger les données d'entraînement et de test
+df_train = pd.read_excel(data_train_path)
+df_test = pd.read_excel(data_test_path)
 
 # Sélection des variables et de la cible
-X = df.drop(columns=['Survived'])
-y = df['Survived']
-
-# Division des données
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train = df_train.drop(columns=['Survived'])
+y_train = df_train['Survived']
+X_test = df_test.drop(columns=['Survived'])
+y_test = df_test['Survived']
 
 # Définir l'espace de recherche des hyperparamètres avec des intervalles
 param_dist = {
-    'n_estimators': randint(10, 201),  # Intervalles pour n_estimators entre 10 et 200
-    'max_depth': randint(3, 26),       # Intervalles pour max_depth entre 3 et 25
-    'min_samples_split': randint(2, 16),  # Intervalles pour min_samples_split entre 2 et 15
-    'min_samples_leaf': randint(1, 7),   # Intervalles pour min_samples_leaf entre 1 et 6
-    'max_features': ["sqrt", "log2"],   # Liste explicite pour max_features
-    'criterion': ["gini", "entropy"]     # Liste explicite pour criterion
+    'n_estimators': randint(10, 52),  # Adapté pour couvrir [10, 30, 40, 51] et plus
+    'max_depth': randint(3, 8),       # Adapté pour couvrir [3, 5, 6, 7] et plus
+    'min_samples_split': randint(2, 4),  # Adapté pour couvrir [2, 3]
+    'min_samples_leaf': [1],          # Fixé à [1] comme dans GridSearchCV
+    'max_features': ["sqrt", "log2"], # Identique à GridSearchCV
+    'criterion': ["gini", "entropy"]  # Identique à GridSearchCV
 }
 
-# Configuration de la recherche aléatoire
+# Configuration de la recherche aléatoire avec custom_precision et accuracy
 custom_scorer = make_scorer(custom_precision)
 random_search = RandomizedSearchCV(
     estimator=RandomForestClassifier(random_state=42),
     param_distributions=param_dist,
     n_iter=500,  # Nombre d'itérations pour RandomizedSearchCV
-    scoring=custom_scorer,
+    scoring={'custom_precision': custom_scorer, 'accuracy': 'accuracy'},  # Calculer les deux métriques
+    refit='custom_precision',  # Optimiser sur custom_precision
     cv=5,  # Validation croisée à 5 plis
     n_jobs=-1,  # Utiliser tous les cœurs disponibles
     verbose=2,  # Afficher les détails de l'exécution
@@ -48,39 +52,63 @@ random_search = RandomizedSearchCV(
     return_train_score=True
 )
 
-# Démarrer le chronomètre
+# Démarrer le chronomètre pour RandomizedSearchCV
 start_time = time.time()
 
-# Exécuter la recherche aléatoire
+# Exécuter RandomizedSearchCV pour l'optimisation
 random_search.fit(X_train, y_train)
 
 # Calculer le temps écoulé
 elapsed_time = time.time() - start_time
-print(f"Temps d'exécution total : {elapsed_time / 60:.2f} minutes")
+print(f"Temps d'exécution de RandomizedSearchCV : {elapsed_time / 60:.2f} minutes")
 
 # Meilleurs paramètres trouvés
 best_params = random_search.best_params_
 print("Meilleurs paramètres après optimisation :", best_params)
 
-# Entraîner le modèle optimisé avec les meilleurs paramètres
-best_model = random_search.best_estimator_
-y_pred_optimized = best_model.predict(X_test)
+# Créer et entraîner le modèle avec les meilleurs paramètres
+optimized_model = RandomForestClassifier(
+    n_estimators=best_params['n_estimators'],
+    max_depth=best_params['max_depth'],
+    min_samples_split=best_params['min_samples_split'],
+    min_samples_leaf=best_params['min_samples_leaf'],
+    max_features=best_params['max_features'],
+    criterion=best_params['criterion'],
+    random_state=42
+)
 
-# Calculer la précision personnalisée et l'accuracy sur l'ensemble de test
-precision_optimized = custom_precision(y_test, y_pred_optimized)
-accuracy_optimized = accuracy_score(y_test, y_pred_optimized)
+# Entraîner le modèle
+optimized_model.fit(X_train, y_train)
 
-print(f"Précision personnalisée après optimisation : {precision_optimized:.4f}")
+# Prédictions sur l'ensemble d'entraînement et de test
+y_pred_train = optimized_model.predict(X_train)
+y_pred_test = optimized_model.predict(X_test)
 
-# Graphique de l'évolution du score moyen basé sur custom_precision
-results_df = pd.DataFrame(random_search.cv_results_)
-mean_test_scores = results_df['mean_test_score']  # Scores moyens (basés sur custom_precision)
-param_combinations = range(1, len(mean_test_scores) + 1)  # Numéro de combinaison
+# Calcul des scores avec la métrique personnalisée et l'accuracy
+custom_score_train = custom_precision(y_train, y_pred_train)
+custom_score_test = custom_precision(y_test, y_pred_test)
+accuracy_train = accuracy_score(y_train, y_pred_train)
+accuracy_test = accuracy_score(y_test, y_pred_test)
 
-plt.figure(figsize=(8, 6))
-plt.plot(param_combinations, mean_test_scores, marker='o', linestyle='-', color='blue')
-plt.xlabel('Combinaison de paramètres')
-plt.ylabel('Score moyen (Précision Personnalisée)')
-plt.title('Évolution de la précision personnalisée pour chaque combinaison de paramètres')
+# Affichage des résultats avec custom_precision et accuracy
+print("\nRésultats :")
+print(f"Score personnalisé sur l'ensemble d'entraînement : {custom_score_train:.4f}")
+print(f"Accuracy sur l'ensemble d'entraînement : {accuracy_train:.4f}")
+print(f"Score personnalisé sur l'ensemble de test : {custom_score_test:.4f}")
+print(f"Accuracy sur l'ensemble de test : {accuracy_test:.4f}")
+
+# Extraire les résultats du RandomizedSearchCV
+results = random_search.cv_results_
+
+# Extraire les scores moyens d'accuracy pour chaque combinaison d'hyperparamètres
+mean_test_accuracy = results['mean_test_accuracy']
+
+# Afficher l'évolution des scores d'accuracy (en fonction des itérations)
+plt.figure(figsize=(10, 6))
+plt.plot(mean_test_accuracy, marker='o', color='blue', linestyle='-', label='Accuracy moyenne de validation')
+plt.xlabel('Itérations (combinaisons d\'hyperparamètres)')
+plt.ylabel('Accuracy Moyenne de Validation')
+plt.title('Évolution de l\'Accuracy lors de l\'Optimisation des Hyperparamètres (RandomizedSearchCV)')
 plt.grid(True)
+plt.legend()
 plt.show()
