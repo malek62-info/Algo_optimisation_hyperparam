@@ -1,0 +1,9 @@
+n_estimators "" i (10, 200)
+max_depth "" i (5, 30)
+min_samples_split "" i (2, 12)
+min_samples_leaf "" i (1, 12)
+max_features "" c ("sqrt", "log2")
+criterion "" c ("gini", "entropy")
+class_weight "" c ("balanced", "balanced_subsample")
+ccp_alpha "" r (0.003, 0.004)
+

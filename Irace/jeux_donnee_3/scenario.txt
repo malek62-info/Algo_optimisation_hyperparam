@@ -1,0 +1,16 @@
+execDir = "C:/irace_random_forest/jeux_donnee_3"
+
+targetRunner = "C:/irace_random_forest/jeux_donnee_3/target-runner.bat"
+
+parameterFile = "C:/irace_random_forest/jeux_donnee_3/parameters.txt"
+
+trainInstancesDir = ""
+
+trainInstancesFile = "instances.txt"
+
+maxTime = 2700
+
+elitist = 1
+
+
+logFile = "C:/irace_random_forest/jeux_donnee_3/irace_log.txt"
