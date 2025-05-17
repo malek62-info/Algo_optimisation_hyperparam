@@ -1,0 +1,12 @@
+Custom Recall: 0.7247
+Hyperparameters:
+n_estimators: 44
+max_depth: 13
+min_samples_split: 3
+min_samples_leaf: 4
+max_features: log2
+criterion: entropy
+class_weight: balanced_subsample
+ccp_alpha: 0.004
+
+Temps d'exécution : 17.08 minutes

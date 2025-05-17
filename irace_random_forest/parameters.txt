@@ -1,6 +1,0 @@
-n_estimators "" i (10, 500)
-max_depth "" i (3, 200)
-min_samples_split "" i (2, 50)
-min_samples_leaf "" i (1, 50)
-max_features "" c ("sqrt", "log2", "None")
-criterion "" c ("gini", "entropy")

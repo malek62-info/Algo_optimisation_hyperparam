@@ -1,0 +1,9 @@
+Best Score: 0.7530
+ 0.003
+ balanced_subsample
+ entropy
+ 30
+ sqrt
+ 12
+ 12
+ 200

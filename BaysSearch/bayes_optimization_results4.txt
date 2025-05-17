@@ -1,0 +1,9 @@
+Best Score: 0.6520
+ 0.004
+ balanced
+ entropy
+ 23
+ sqrt
+ 4
+ 2
+ 167

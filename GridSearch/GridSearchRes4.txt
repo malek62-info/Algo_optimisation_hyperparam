@@ -1,0 +1,9 @@
+Best Score: 0.6560
+n_estimators: 50
+max_depth: 25
+min_samples_split: 7
+min_samples_leaf: 3
+max_features: log2
+criterion: entropy
+class_weight: balanced
+ccp_alpha: 0.003

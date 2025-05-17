@@ -1,0 +1,10 @@
+Custom Recall: 0.6520
+Hyperparameters:
+n_estimators: 158
+max_depth: 26
+min_samples_split: 11
+min_samples_leaf: 1
+max_features: log2
+criterion: entropy
+class_weight: balanced
+ccp_alpha: 0.004

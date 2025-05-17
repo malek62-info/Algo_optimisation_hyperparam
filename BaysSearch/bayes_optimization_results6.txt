@@ -1,0 +1,9 @@
+Best Score: 0.9676
+ 0.003
+ balanced
+ entropy
+ 30
+ log2
+ 3
+ 2
+ 131

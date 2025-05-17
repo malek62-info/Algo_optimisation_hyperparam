@@ -1,0 +1,9 @@
+Best Score: 0.7505
+n_estimators: 20
+max_depth: 30
+min_samples_split: 2
+min_samples_leaf: 2
+max_features: sqrt
+criterion: gini
+class_weight: balanced_subsample
+ccp_alpha: 0.003

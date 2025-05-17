@@ -1,0 +1,9 @@
+Best Score: 0.8800
+ 0.004
+ balanced
+ gini
+ 5
+ sqrt
+ 12
+ 12
+ 200
